@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>10-Second Click Challenge</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background-color: #f5f5f5;
+        color: #222;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #4facfe, #00f2fe);
+      }
+
+      main {
+        background-color: rgba(255, 255, 255, 0.92);
+        border-radius: 16px;
+        padding: 24px;
+        max-width: 480px;
+        width: 100%;
+        box-shadow: 0 20px 50px rgba(15, 55, 95, 0.25);
+      }
+
+      h1 {
+        margin-top: 0;
+        text-align: center;
+      }
+
+      .timer {
+        font-size: 2.2rem;
+        text-align: center;
+        margin: 12px 0 20px;
+        font-weight: bold;
+      }
+
+      .click-count {
+        font-size: 1.8rem;
+        text-align: center;
+        margin: 10px 0;
+      }
+
+      .click-button {
+        display: block;
+        margin: 0 auto;
+        padding: 16px 48px;
+        font-size: 1.3rem;
+        background: #ff5f6d;
+        background: linear-gradient(45deg, #ff9966, #ff5f6d);
+        color: #fff;
+        border: none;
+        border-radius: 50px;
+        cursor: pointer;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+
+      .click-button:active {
+        transform: scale(0.95);
+        box-shadow: 0 10px 20px rgba(255, 95, 109, 0.35);
+      }
+
+      .click-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      form {
+        display: flex;
+        gap: 12px;
+        margin: 20px 0;
+      }
+
+      input[type="text"] {
+        flex: 1;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+      }
+
+      .leaderboard {
+        margin-top: 28px;
+      }
+
+      .leaderboard h2 {
+        margin-bottom: 12px;
+      }
+
+      ol {
+        margin: 0;
+        padding-left: 20px;
+      }
+
+      .score-entry {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 0;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+      }
+
+      .score-entry span {
+        font-weight: 600;
+      }
+
+      .status {
+        text-align: center;
+        min-height: 1.5rem;
+        margin-top: 12px;
+        color: #555;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>10-Second Click Challenge</h1>
+      <div class="timer" id="timer">10.0</div>
+      <div class="click-count" id="click-count">Clicks: 0</div>
+      <button class="click-button" id="click-button">Start Clicking!</button>
+
+      <form id="name-form">
+        <input
+          type="text"
+          id="player-name"
+          placeholder="Enter your name (optional)"
+          maxlength="30"
+        />
+        <button type="submit">Save Score</button>
+      </form>
+
+      <div class="status" id="status"></div>
+
+      <section class="leaderboard">
+        <h2>Leaderboard</h2>
+        <ol id="leaderboard-list"></ol>
+      </section>
+    </main>
+
+    <script>
+      const clickButton = document.getElementById("click-button");
+      const timerEl = document.getElementById("timer");
+      const clickCountEl = document.getElementById("click-count");
+      const statusEl = document.getElementById("status");
+      const leaderboardList = document.getElementById("leaderboard-list");
+      const nameForm = document.getElementById("name-form");
+      const playerNameInput = document.getElementById("player-name");
+
+      let clickCount = 0;
+      let timeRemaining = 10.0;
+      let isPlaying = false;
+      let timerInterval = null;
+
+      async function fetchScores() {
+        try {
+          const response = await fetch("/api/scores");
+          const data = await response.json();
+          updateLeaderboard(data.scores || []);
+        } catch (error) {
+          console.error("Unable to load scores", error);
+        }
+      }
+
+      function updateLeaderboard(scores) {
+        leaderboardList.innerHTML = "";
+        if (!scores.length) {
+          leaderboardList.innerHTML = "<li>No scores yet. Be the first!</li>";
+          return;
+        }
+
+        scores.forEach((entry) => {
+          const item = document.createElement("li");
+          item.className = "score-entry";
+          const name = document.createElement("span");
+          name.textContent = entry.name;
+          const score = document.createElement("span");
+          score.textContent = `${entry.score} clicks`;
+          item.appendChild(name);
+          item.appendChild(score);
+          leaderboardList.appendChild(item);
+        });
+      }
+
+      function resetGame() {
+        clickCount = 0;
+        timeRemaining = 10.0;
+        isPlaying = false;
+        clearInterval(timerInterval);
+        timerEl.textContent = timeRemaining.toFixed(1);
+        clickCountEl.textContent = `Clicks: ${clickCount}`;
+        clickButton.disabled = false;
+        clickButton.textContent = "Start Clicking!";
+        statusEl.textContent = "";
+      }
+
+      function startGame() {
+        if (isPlaying) {
+          return;
+        }
+        clickCount = 0;
+        timeRemaining = 10.0;
+        isPlaying = true;
+        clickButton.textContent = "Keep Clicking!";
+        statusEl.textContent = "";
+
+        timerInterval = setInterval(() => {
+          timeRemaining = Math.max(0, timeRemaining - 0.1);
+          timerEl.textContent = timeRemaining.toFixed(1);
+          if (timeRemaining <= 0) {
+            clearInterval(timerInterval);
+            isPlaying = false;
+            clickButton.disabled = true;
+            clickButton.textContent = "Time's up!";
+            statusEl.textContent =
+              "Enter your name and save your score to join the leaderboard.";
+          }
+        }, 100);
+      }
+
+      clickButton.addEventListener("click", () => {
+        if (!isPlaying) {
+          startGame();
+        }
+        if (isPlaying) {
+          clickCount += 1;
+          clickCountEl.textContent = `Clicks: ${clickCount}`;
+        }
+      });
+
+      nameForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (isPlaying) {
+          statusEl.textContent = "Wait for the round to finish before saving.";
+          return;
+        }
+        if (clickCount === 0) {
+          statusEl.textContent = "Try to click at least once before saving.";
+          return;
+        }
+
+        const payload = {
+          name: playerNameInput.value.trim() || "Anonymous",
+          score: clickCount,
+        };
+
+        try {
+          const response = await fetch("/api/submit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const data = await response.json();
+          if (!response.ok) {
+            statusEl.textContent = data.error || "Unable to save score.";
+            return;
+          }
+          statusEl.textContent = "Score saved!";
+          updateLeaderboard(data.scores || []);
+          resetGame();
+        } catch (error) {
+          console.error(error);
+          statusEl.textContent = "Network error. Please try again.";
+        }
+      });
+
+      fetchScores();
+      setInterval(fetchScores, 5000);
+    </script>
+  </body>
+</html>
