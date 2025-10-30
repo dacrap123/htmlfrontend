@@ -78,6 +78,8 @@ def submit_score():
         response = app.make_default_options_response()
         return response
 
+@app.route("/api/submit", methods=["POST"])
+def submit_score():
     data = request.get_json(force=True)
     name = (data.get("name") or "Anonymous").strip()[:30]
     score = int(data.get("score", 0))

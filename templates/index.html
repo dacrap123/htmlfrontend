@@ -171,6 +171,7 @@
       async function fetchScores() {
         try {
           const response = await fetch(apiUrl("/api/scores"));
+          const response = await fetch("/api/scores");
           const data = await response.json();
           updateLeaderboard(data.scores || []);
         } catch (error) {
@@ -262,6 +263,7 @@
 
         try {
           const response = await fetch(apiUrl("/api/submit"), {
+          const response = await fetch("/api/submit", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
