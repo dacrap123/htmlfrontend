@@ -38,6 +38,15 @@ class Leaderboard:
         with self._lock:
             return [asdict(entry) for entry in self._entries]
 
+    def clear(self) -> None:
+        """Remove all leaderboard entries.
+
+        Primarily useful for tests so they can run in isolation without
+        persisting state between test cases.
+        """
+        with self._lock:
+            self._entries.clear()
+
 
 app = Flask(__name__)
 leaderboard = Leaderboard(max_entries=20)

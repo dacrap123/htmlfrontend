@@ -22,6 +22,18 @@ python server.py
 ```
 
 The application runs on http://127.0.0.1:5000. Open the URL in your browser to play.
+If you prefer to open `templates/index.html` directly from disk instead of through
+Flask, the page will automatically talk to the server at `http://127.0.0.1:5000`. You
+can override this by defining `window.API_BASE_URL` in the browser console before the
+page loads or by serving the HTML from another host.
+
+## Running tests
+
+Run the automated checks before pushing changes:
+
+```bash
+pytest
+```
 
 ## Development notes
 
