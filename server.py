@@ -38,9 +38,27 @@ class Leaderboard:
         with self._lock:
             return [asdict(entry) for entry in self._entries]
 
+    def clear(self) -> None:
+        """Remove all leaderboard entries.
+
+        Primarily useful for tests so they can run in isolation without
+        persisting state between test cases.
+        """
+        with self._lock:
+            self._entries.clear()
+
 
 app = Flask(__name__)
 leaderboard = Leaderboard(max_entries=20)
+
+
+@app.after_request
+def add_cors_headers(response):
+    """Allow the front end to talk to the API even when served elsewhere."""
+    response.headers.setdefault("Access-Control-Allow-Origin", "*")
+    response.headers.setdefault("Access-Control-Allow-Headers", "Content-Type")
+    response.headers.setdefault("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+    return response
 
 
 @app.route("/")
@@ -52,6 +70,13 @@ def index() -> str:
 def get_scores():
     return jsonify({"scores": leaderboard.as_dict()})
 
+
+@app.route("/api/submit", methods=["POST", "OPTIONS"])
+def submit_score():
+    if request.method == "OPTIONS":
+        # Pre-flight request from browsers using Fetch API.
+        response = app.make_default_options_response()
+        return response
 
 @app.route("/api/submit", methods=["POST"])
 def submit_score():
